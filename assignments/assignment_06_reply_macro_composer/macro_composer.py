@@ -9,6 +9,9 @@ Use runtime configs (`.bind`, `.with_config`) to adjust tone and length.
 
 import os
 from typing import List, Dict
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 
 class MacroComposer:
@@ -31,11 +34,13 @@ class MacroComposer:
             "Return a ready-to-send macro with greeting and sign-off."
         )
         # TODO: Create ChatPromptTemplate using the above strings and store as self.prompt
-        # self.prompt = ChatPromptTemplate.from_messages([...])
-        self.prompt = None
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", self.system_prompt),
+            ("user", self.user_prompt)
+   ])
 
         # TODO: Create a base ChatOpenAI LLM (low temperature). Store as self.llm
-        self.llm = None
+        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
     def compose_macro(
         self, message: str, context: str, style_hint: str = "neutral"
@@ -48,9 +53,9 @@ class MacroComposer:
         - Invoke with `{"message": message, "context": context, "style_hint": style_hint}`.
         - Return the string content.
         """
-        raise NotImplementedError(
-            "Wire prompt→llm→parser chain with runtime config and invoke."
-        )
+        chain = self.prompt | self.llm | StrOutputParser()
+        return chain.invoke({"message": message, "context": context, "style_hint": style_hint})
+   
 
     def compose_bulk(
         self, items: List[Dict[str, str]], style_hint: str = "neutral"

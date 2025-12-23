@@ -9,12 +9,21 @@ import os
 from typing import List
 from pydantic import BaseModel, Field
 
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts.chat import ChatPromptTemplate
+from langchain.chains import LLMChain
+from langchain.output_parsers import PydanticOutputParser
+
+
 
 class Hint(BaseModel):
     """Structured hint output."""
 
     level: int = Field(..., description="1=light nudge, higher=more direct")
     text: str
+
+class HintsWrapper(BaseModel):
+    hints: List[Hint]
 
 
 class PuzzleHintEngine:
@@ -34,13 +43,25 @@ class PuzzleHintEngine:
         """
         self.system_prompt = "You provide puzzle hints in progressive layers, never spoiling unless difficulty is very low."
         self.user_prompt = (
-            "Puzzle: {puzzle}\nAttempt: {attempt}\nDifficulty: {difficulty}\n"
-            "Return an array of 2-3 hints from gentle to direct."
-        )
+              "Puzzle: {puzzle}\nAttempt: {attempt}\nDifficulty: {difficulty}\n"
+              "Return a JSON object with key 'hints' containing 2-3 hints, each with 'level' and 'text'."
+         )
+
         # TODO: Build prompt and a structured-output LLM targeting List[Hint]
-        self.prompt = None
-        self.llm = None
-        self.chain = None
+        
+
+        # Build the prompt template
+        self.prompt = ChatPromptTemplate.from_template(self.user_prompt)
+
+        # Build structured-output parser
+        self.parser = PydanticOutputParser(model=HintsWrapper)
+
+        # Build the LLM
+        self.llm = ChatOpenAI(temperature=0.5, model_name="gpt-4o-mini")
+
+        # Combine into a chain
+        self.chain = LLMChain(prompt=self.prompt, llm=self.llm, output_parser=self.parser)
+
 
     def get_hints(self, puzzle: str, attempt: str, difficulty: int = 3) -> List[Hint]:
         """Return 2-3 hints tailored to the attempt and difficulty.
@@ -49,7 +70,14 @@ class PuzzleHintEngine:
         - Wire prompt→llm→structured parser (e.g., with Pydantic) and invoke.
         - Ensure output is parsed into a list of `Hint` models.
         """
-        raise NotImplementedError("Implement structured hint generation flow.")
+        inputs = {
+          "puzzle": puzzle,
+          "attempt": attempt,
+          "difficulty": difficulty
+          }
+
+        result = self.chain.invoke(inputs)
+        return result.hints  
 
 
 def _demo():

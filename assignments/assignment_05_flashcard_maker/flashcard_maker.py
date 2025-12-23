@@ -20,20 +20,19 @@ class Flashcard(BaseModel):
 class FlashcardMaker:
     def __init__(self):
         # TODO: Create an LLM and wrap with structured output to Flashcard
-        # self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
-        # self.structured = self.llm.with_structured_output(Flashcard)
-        self.llm = None
-        self.structured = None
+        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+        self.structured = self.llm.with_structured_output(Flashcard)
+        
 
     def make_cards(self, topics: List[str]) -> List[Flashcard]:
         """TODO: Generate one card per topic with concise definitions."""
-        # cards: List[Flashcard] = []
-        # for t in topics:
-        #     card = self.structured.invoke(
-        #         f"Create a beginner-friendly flashcard about '{t}'."
-        #     )
-        #     cards.append(card)
-        # return cards
+        cards: List[Flashcard] = []
+        for t in topics:
+            card = self.structured.invoke(
+               f"Create a beginner-friendly flashcard about '{t}'."
+            )
+            cards.append(card)
+        return cards
         raise NotImplementedError("Build structured LLM and generate flashcards.")
 
 

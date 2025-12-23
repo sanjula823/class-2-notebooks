@@ -17,10 +17,9 @@ from langchain_core.output_parsers import StrOutputParser
 class TransitExplainer:
     def __init__(self):
         # TODO: Create two LLMs: "calm" (low temperature) and "creative" (higher temperature/top_p)
-        # self.calm_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
-        # self.creative_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.8)
-        self.calm_llm = None
-        self.creative_llm = None
+        self.calm_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2,top_p=0.9)
+        self.creative_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.8,top_p=1.0)
+        
 
         # TODO: Build a role-aware prompt with {line_name} and {status_text}
         system_prompt = (
@@ -31,29 +30,34 @@ class TransitExplainer:
         user_prompt = "Line: {line_name}\nStatus: {status_text}\nReturn only 2 bullets."
         # TODO: Create ChatPromptTemplate using the above strings
         # Example (fill in):
-        # self.prompt = ChatPromptTemplate.from_messages([
-        #     ("system", system_prompt),
-        #     ("user", user_prompt),
-        # ])
-        self.prompt = None
+        self.prompt = ChatPromptTemplate.from_messages([
+         ("system", system_prompt),
+         ("user", user_prompt),
+])
+       
 
         # TODO: Create two chains with StrOutputParser
-        # self.calm_chain = self.prompt | self.calm_llm | StrOutputParser()
-        # self.creative_chain = self.prompt | self.creative_llm | StrOutputParser()
-        self.calm_chain = None
-        self.creative_chain = None
+        self.calm_chain = self.prompt | self.calm_llm | StrOutputParser()
+        self.creative_chain = self.prompt | self.creative_llm | StrOutputParser()
+        
 
     def explain(self, line_name: str, status_text: str) -> str:
-        """
-        TODO: Invoke both chains and return the calm version.
-        Optionally print the creative variant to compare tone.
-        """
-        # calm = self.calm_chain.invoke({"line_name": line_name, "status_text": status_text})
-        # _ = self.creative_chain.invoke({"line_name": line_name, "status_text": status_text})
-        # return calm
-        raise NotImplementedError(
-            "Build prompt, chains, invoke both, return calm result."
-        )
+        calm = self.calm_chain.invoke({
+            "line_name": line_name,
+            "status_text": status_text
+       })
+
+       # Optional comparison (not returned)
+        creative = self.creative_chain.invoke({
+            "line_name": line_name,
+            "status_text": status_text
+   })
+
+        print("\n✨ Creative version:")
+        print(creative)
+
+        return calm
+
 
 
 def _demo():

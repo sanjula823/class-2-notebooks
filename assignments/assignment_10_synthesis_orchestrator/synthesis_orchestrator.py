@@ -7,6 +7,9 @@ them into a single, coherent summary highlighting agreements and conflicts.
 
 import os
 from typing import List, Dict
+from langchain.chat_models.openai import ChatOpenAI
+from langchain.prompts.chat import ChatPromptTemplate
+from langchain.chains import LLMChain
 
 
 class SynthesisOrchestrator:
@@ -32,29 +35,38 @@ class SynthesisOrchestrator:
         )
 
         # TODO: Build prompts and LLM(s)
-        self.extract_prompt = None
-        self.synth_prompt = None
-        self.llm = None
-        self.extract_chain = None
-        self.synth_chain = None
+        # Extractor prompt & chain
+        self.extract_prompt = ChatPromptTemplate.from_template(self.extractor_user)
+        self.llm = ChatOpenAI(temperature=0.5, model_name="gpt-4o-mini")
+        self.extract_chain = LLMChain(prompt=self.extract_prompt, llm=self.llm)
+
+        # Synthesizer prompt & chain
+        self.synth_prompt = ChatPromptTemplate.from_template(self.synth_user)
+        self.synth_chain = LLMChain(prompt=self.synth_prompt, llm=self.llm)
+
 
     def extract_claims(self, notes: List[str]) -> List[str]:
         """Return a list of extracted claims lists (as strings), one per note.
 
         Implement using `.batch()` on the extractor chain.
         """
-        raise NotImplementedError("Implement batch claim extraction.")
+        inputs = [{"note": note} for note in notes]
+        results = self.extract_chain.batch(inputs)
+        return [r["text"] for r in results]
 
     def synthesize(self, claims: List[str]) -> str:
         """Return a synthesis from already-extracted claims.
 
         Implement: invoke synthesizer chain with a joined claims string.
         """
-        raise NotImplementedError("Implement final synthesis step.")
+        claims_text = "\n".join(claims)
+        return self.synth_chain.run({"claims": claims_text})
 
     def run(self, notes: List[str]) -> str:
         """End-to-end: extract claims (batch) then synthesize a final output."""
-        raise NotImplementedError("Wire extract→synthesize end-to-end.")
+        claims = self.extract_claims(notes)
+        summary = self.synthesize(claims)
+        return summary
 
 
 def _demo():

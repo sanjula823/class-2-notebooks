@@ -30,16 +30,15 @@ class EmergencyDispatcher:
 
     def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.2):
         # TODO: Initialize an LLM for stable, reproducible outputs
-        # self.llm = ChatOpenAI(model=model, temperature=temperature)
-        self.llm = None
-
+        self.llm = ChatOpenAI(model=model, temperature=temperature)
+        
         # TODO: Build the ChatPromptTemplate from prompt strings in `_build_prompt`
-        # self.prompt = self._build_prompt()
-        self.prompt = None
+        self.prompt = self._build_prompt()
+        
 
         # TODO: Create a chain that maps {transcript} -> "URGENCY | SUMMARY | ACTION"
-        # self.chain = self.prompt | self.llm | StrOutputParser()
-        self.chain = None
+        self.chain = self.prompt | self.llm | StrOutputParser()
+       
 
     def _build_prompt(self) -> Optional[ChatPromptTemplate]:
         """
@@ -63,24 +62,35 @@ class EmergencyDispatcher:
 
         # TODO: create ChatPromptTemplate with above prompts
         # Example construction (fill in):
-        # return ChatPromptTemplate.from_messages([
-        #     ("system", system_prompt),
-        #     ("user", user_prompt),
-        # ])
-        return None
+        return ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("user", user_prompt),
+           ])
+        
 
     def triage_call(self, transcript: str) -> DispatchResult:
-        """
-        TODO: Run the chain and parse the single-line response into `DispatchResult`.
+        try:
+           response = self.chain.invoke({"transcript": transcript})
 
-        Parsing guidance:
-        - Split on the pipe `|`
-        - Strip whitespace around each field
-        - Map to DispatchResult(urgency, summary, action)
-        """
-        # TODO: invoke the chain with {"transcript": transcript}
-        # and parse the result into DispatchResult
-        raise NotImplementedError("Build chain, invoke, and parse triage output.")
+           parts = [p.strip() for p in response.split("|")]
+           if len(parts) != 3:
+               raise ValueError("Invalid response format")
+
+           urgency, summary, action = parts
+
+        except Exception:
+          urgency = "UNKNOWN"
+          summary = "Unable to assess situation"
+          action = "Request more information"
+
+        return DispatchResult(
+        urgency=urgency,
+        summary=summary,
+        action=action,
+    )
+
+   
+
 
 
 def _demo_cases() -> None:
